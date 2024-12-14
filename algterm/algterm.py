@@ -2,6 +2,7 @@ import sympy
 
 
 class Term:
+
     def __init__(self, arity: int, symbol: str, expression=None):
         """
         Initialize a Term object.
@@ -58,16 +59,6 @@ class Term:
         """
         return Term(self.arity, str(self.symbol), self.expression)
 
-    def simplify(self):
-        """
-        Simplify the expression of the term if it is a function.
-
-        :return: Simplified expression.
-        """
-        if self.expression is None:
-            raise ValueError("No expression to simplify.")
-        return sympy.simplify(self.expression)
-
     def __repr__(self):
         """
         String representation of the Term object.
@@ -78,6 +69,17 @@ class Term:
             return f"{self.symbol}^({self.arity}) = {self.expression}"  # f^(n) - означает функцию n переменных
         else:
             return f'{self.symbol}'
+
+
+def simplify(func):
+    """
+    Simplify the expression.
+
+    :return: Simplified expression.
+    """
+    if func.expression is None:
+        raise ValueError("No expression to simplify.")
+    return sympy.simplify(func.expression)
 
 
 # Examples to demonstrate functionality
@@ -97,7 +99,7 @@ def examples():
     # Example 4: Simplifying a function's expression
     f.set_expression("x + y - 2*x")
     print(f'new expression for func {f.symbol}: {f.expression}')
-    print(f'simplified func: {f.simplify()}')  # Output: -x + y
+    print(f'simplified func: {simplify(f)}')  # Output: -x + y
 
     # Example 5: Copying a term
     g = f.copy()
