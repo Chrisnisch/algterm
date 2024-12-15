@@ -1,23 +1,25 @@
-import sympy
+import re
+from collections import defaultdict
 
 
 class Term:
-
-    def __init__(self, arity: int, symbol: str, expression=None):
+    def __init__(self, symbol, expr=None):
         """
         Initialize a Term object.
 
-        :param arity: Arity of the term (0 for constants/variables, >= 1 for functions).
         :param symbol: Symbol representing the term.
-        :param expression: Optional; expression for the term if it represents a function.
         """
-        self.set_arity(arity)
-        self.set_symbol(symbol)
-        self.expression = expression if expression else None
+        self.symbol = None
+        self.arity = None
+        self.expression = None
 
-    def set_arity(self, n: int):
+        self.set_symbol(symbol)
+        if expr:
+            self.set_expression(expr)
+
+    def set_arity(self, n):
         if n < 0:
-            raise ValueError("Arity must be non-negative.")
+            raise ValueError('Arity must be non-negative')
         self.arity = n
 
     def set_symbol(self, s: str):
@@ -26,87 +28,139 @@ class Term:
 
         :param s: Symbol for the term.
         """
-        if self.arity == 0:
-            if len(s) == 1 and s.islower() and s.isalpha():
-                # Greek constants (e.g., alpha, beta)
-                self.symbol = sympy.Symbol(s)
-            elif s[0].isalpha() and s[0].islower():
-                # Latin variables (e.g., x, y_1)
-                self.symbol = sympy.Symbol(s)
-            else:
-                raise ValueError("Invalid symbol for a constant or variable.")
-        elif self.arity >= 1:
-            if s.isalpha() and s.islower():
-                self.symbol = sympy.Symbol(s)
-            else:
-                raise ValueError("Function symbols must be lowercase Latin letters.")
+        var_pattern = r'^[a-z](_[a-zA-Z0-9]+)?$'
+        const_pattern = r'^[\u03b1-\u03c9](_[a-zA-Z0-9]+)?$'
+        func_pattern = r'^[a-zA-Z](_[a-zA-Z0-9]+)?\([a-z\u03b1-\u03c9](_[a-zA-Z0-9]+)?(\s*,\s*[a-z\u03b1-\u03c9](_[a-zA-Z0-9]+)?)*\)$'
+
+        if re.match(const_pattern, s) or re.match(var_pattern, s):
+            self.symbol = s
+            self.set_arity(0)
+        elif re.match(func_pattern, s):
+            self.symbol = s
+            self.set_arity(len(s[s.index('(') + 1:s.index(')')].split(',')))
+        else:
+            raise ValueError('Invalid term name')
 
     def set_expression(self, expr):
         """
         Set or update the expression for the term.
 
-        :param expr: The new expression.
+        :param expr: The expression.
         """
         if self.arity == 0:
-            raise ValueError("Constants or variables cannot have expressions.")
-        self.expression = expr
-
-    def copy(self):
-        """
-        Create a copy of the current Term object.
-
-        :return: A new Term object with the same attributes.
-        """
-        return Term(self.arity, str(self.symbol), self.expression)
+            raise ValueError('Constants or variables cannot have expressions')
+        self.expression = Expression(expr)
 
     def __repr__(self):
+        return self.symbol
+
+    def __add__(self, other):
+        return Expression(('+', self, other))
+
+    def __mul__(self, other):
+        return Expression(('*', self, other))
+
+    def __pow__(self, power):
+        return Expression(('^', self, power))
+
+
+class Expression:
+    def __init__(self, value):
         """
-        String representation of the Term object.
+        Initialize expression.
 
-        :return: A string describing the term.
+        :param value: Tuple representing an operation, Term, or a constant.
         """
-        if self.expression:
-            return f"{self.symbol}^({self.arity}) = {self.expression}"  # f^(n) - означает функцию n переменных
-        else:
-            return f'{self.symbol}'
+        self.value = value
+
+    def __add__(self, other):
+        return Expression(('+', self, other))
+
+    def __mul__(self, other):
+        return Expression(('*', self, other))
+
+    def __pow__(self, power):
+        return Expression(('^', self, power))
+
+    def simplify(self):
+        """
+        Simplify the expression recursively.
+
+        :return: A simplified Expression.
+        """
+        return self._simplify_recursive(self.value)
+
+    def _simplify_recursive(self, node):
+        """
+        Simplify the expression tree recursively.
+
+        :param node: Current node in the expression tree.
+        :return: Simplified node.
+        """
+        if isinstance(node, Term) or isinstance(node, (int, float)):
+            return node
+        if isinstance(node, Expression):  # Раскрываем вложенные выражения
+            return self._simplify_recursive(node.value)
+
+        op, left, right = node
+
+        left = self._simplify_recursive(left)
+        right = self._simplify_recursive(right)
+
+        if op == '+':
+            if isinstance(left, Term) and isinstance(right, Term) and left.symbol == right.symbol:
+                return Term(left.symbol)  # Объединение однотипных термов
+            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+                return left + right
+        elif op == '*':
+            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+                return left * right
+        elif op == '^':
+            if isinstance(right, (int, float)):
+                return left ** right
+
+        return (op, left, right)
+
+    def __repr__(self):
+        return self._to_string(self.value)
+
+    def _to_string(self, node):
+        """
+        Convert the expression tree to a string representation.
+
+        :param node: Current node in the tree.
+        :return: String representation.
+        """
+        if isinstance(node, Term):
+            return node.symbol
+        if isinstance(node, (int, float)):
+            return str(node)
+        if isinstance(node, Expression):  # Раскрытие Expression
+            return self._to_string(node.value)
+
+        op, left, right = node
+        left_str = self._to_string(left)
+        right_str = self._to_string(right)
+
+        if op == '+':
+            return f"({left_str} + {right_str})"
+        elif op == '*':
+            return f"({left_str} * {right_str})"
+        elif op == '^':
+            return f"({left_str}^{right_str})"
+        return ""
 
 
-def simplify(func):
-    """
-    Simplify the expression.
+if __name__ == '__main__':
+    # Example usage
+    x = Term('x')  # Variable x
+    y = Term('y')  # Variable y
+    alpha = Term('α')  # Constant α
 
-    :return: Simplified expression.
-    """
-    if func.expression is None:
-        raise ValueError("No expression to simplify.")
-    return sympy.simplify(func.expression)
+    # Define an expression
+    expr = x + y + x * y + alpha
+    print("Expression:", expr)
 
-
-# Examples to demonstrate functionality
-def examples():
-    # Example 1: Creating a constant
-    pi = Term(0, "π")
-    print(f'const example: {pi}')  # Output: π
-
-    # Example 2: Creating a variable
-    x = Term(0, "x")
-    print(f'var example: {x}')  # Output: x
-
-    # Example 3: Creating a function with an expression
-    f = Term(2, "f", expression="x - y")
-    print(f'func example: {f}')  # Output: f^(2) = x - y
-
-    # Example 4: Simplifying a function's expression
-    f.set_expression("x + y - 2*x")
-    print(f'new expression for func {f.symbol}: {f.expression}')
-    print(f'simplified func: {simplify(f)}')  # Output: -x + y
-
-    # Example 5: Copying a term
-    g = f.copy()
-    g.set_symbol('g')
-    print(f'new func {g.symbol} copied from {f.symbol}: {g}')  # Output: g^(2) = x + y - 2*x
-
-
-# Run examples
-if __name__ == "__main__":
-    examples()
+    # Simplify
+    simplified = expr.simplify()
+    print("Simplified Expression:", simplified)

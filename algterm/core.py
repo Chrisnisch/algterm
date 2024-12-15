@@ -1,3 +1,4 @@
+import copy
 import re
 
 
@@ -16,9 +17,11 @@ class Term:
         self.set_symbol(symbol)
         self.set_expression(expr) if expr else None
 
-    def set_arity(self, n):
+    def __set_arity(self, n):
         if n < 0:
             raise ValueError('Arity must be non-negative')
+        if self.arity > 0:
+            raise Warning('Setting arity 0 to a function')
         self.arity = n
 
     def set_symbol(self, s: str):
@@ -35,10 +38,10 @@ class Term:
 
         if bool(re.match(const_pattern, s)) or bool(re.match(var_pattern, s)):
             self.symbol = s
-            self.set_arity(0)
+            self.__set_arity(0)
         elif bool(re.match(func_pattern, s)):
             self.symbol = s
-            self.set_arity(len(s[1:-1].split(',')))
+            self.__set_arity(len(s[1:-1].split(',')))
         else:
             raise ValueError('Invalid term name')
 
@@ -58,10 +61,7 @@ class Term:
 
         :return: A new Term object with the same attributes.
         """
-        new_term = Term(self.symbol)
-        new_term.set_arity(self.arity)
-        new_term.set_expression(self.expression)
-        return new_term
+        return copy.deepcopy(self)
 
     def __repr__(self):
         """
@@ -87,7 +87,7 @@ class Expression:
         """
         Initialize expression.
 
-        :param value: Term, number or other expression.
+        :param value: Term or other expression.
         """
         if isinstance(value, (Term, Expression, int, float, str)):
             self.value = value
@@ -95,7 +95,7 @@ class Expression:
             raise TypeError('Expression must be initialized with Term, Expression, int, float, or str')
 
     def __add__(self, other):
-        return Expression(f"{self.value} + {other}")
+        return Expression(f"({self.value} + {other})")
 
     def __mul__(self, other):
         return Expression(f"{self.value} * {other}")
@@ -108,14 +108,10 @@ class Expression:
 
 
 if __name__ == '__main__':
-    # some greeks letters for us: α β γ λ π
-
-    x = Term('x')  # терм-переменная x
-    y = Term('y')  # терм-переменная y
-    alpha = Term('α')  # терм-константа α
-    func_f = Term('f(x, y, α)', expr=(x ** 2 + y ** 2 + alpha))  # терм-функция f
-    print(func_f)  # вывод терма-функции: f(x, y, α)
-    print(func_f.expression)  # вывод выражения терма-функции: x^2 + y^2 + α
-
-    expr = x + func_f.expression ** 2 + alpha  # выражение с термами
-    print(expr)  # выводится полученное выражение: x + (x^2 + y^2 + α)^2 + α
+    pass
+    # func_f = Term('f(x, y, α)', expr=(x ** 2 + y ** 2 + alpha))  # терм-функция f
+    # print(func_f)  # вывод терма-функции: f(x, y, α)
+    # print(func_f.expression)  # вывод выражения терма-функции: x^2 + y^2 + α
+    #
+    # expr = x + func_f.expression ** 2 + alpha  # выражение с термами
+    # print(expr)  # выводится полученное выражение: x + (x^2 + y^2 + α)^2 + α
