@@ -14,6 +14,7 @@ class Term:
         self.symbol = None
         self.arity = None
         self.expression = None
+        self.args = None
 
         self.set_symbol(symbol)
         self.set_expression(expr) if expr else None
@@ -84,19 +85,18 @@ class Term:
             result.append(buffer.strip())  # Add the last argument
             return result
 
-        var_pattern = r'^[a-z](_[a-zA-Z0-9]+)?$'
-        const_pattern = r'^[\u03b1-\u03c9](_[a-zA-Z0-9]+)?$'
+        var_const_pattern = r'^[a-z\u03b1-\u03c9](_[a-zA-Z0-9]+)?$'
         func_pattern = r'^[a-zA-Z](_[a-zA-Z0-9]+)?\((.*)\)$'
 
-        if bool(re.match(const_pattern, s)) or bool(re.match(var_pattern, s)):
+        if bool(re.match(var_const_pattern, s)):
             self.symbol = s
             self.__set_arity(0)
         elif match := re.match(func_pattern, s):
-            # Проверка содержимого аргументов
             arguments = match.group(2)
             if _validate_arguments(arguments):
                 self.symbol = s
-                self.__set_arity(len(_split_arguments(arguments)))
+                self.args = _split_arguments(arguments)
+                self.__set_arity(len(self.args))
             else:
                 raise ValueError('Invalid arguments in function')
         else:
@@ -108,9 +108,41 @@ class Term:
 
         :param expr: The expression.
         """
+
+        def __extract_terms(expr):
+            token_patterns = [
+                (r'[a-zA-Z](_[a-zA-Z0-9]+)?\((.*)\)', 'FUNC'),
+                (r'[a-z\u03b1-\u03c9](_[a-z0-9]+)?', 'NULLARY'),
+                (r'\+', 'PLUS'),
+                (r'-', 'MINUS'),
+                (r'\*', 'TIMES'),
+                (r'/', 'DIVIDE'),
+                (r'^', 'POW'),
+                (r'\(', 'LPAREN'),
+                (r'\)', 'RPAREN'),
+                (r'\s+', 'WHITESPACE'),
+            ]
+
+            master_pattern = '|'.join(f'(?P<{token[1]}>{token[0]})' for token in token_patterns)
+
+            scanner = re.finditer(master_pattern, expr)
+            terms = set()
+            for match in scanner:
+                kind = match.lastgroup
+                value = match.group()
+                if kind == 'NULLARY' or kind == 'FUNC':
+                    terms.add(value)
+            return terms
+
         if self.arity == 0:
             raise ValueError('Constants or variables cannot have expressions')
-        self.expression = Expression(expr)
+
+        terms_in_expr = __extract_terms(str(expr))
+
+        if terms_in_expr == set(self.args):
+            self.expression = Expression(expr)
+        else:
+            raise ValueError(f'Invalid terms in expression for function {self.symbol}')
 
     def copy(self):
         """
