@@ -74,14 +74,8 @@ class Term:
     def __add__(self, other):
         return Expression(f"{self} + {other}")
 
-    def __sub__(self, other):
-        return Expression(f"{self} - {other}")
-
     def __mul__(self, other):
         return Expression(f"{self} * {other}")
-
-    def __truediv__(self, other):
-        return Expression(f"{self} / {other}")
 
     def __pow__(self, power):
         return Expression(f"{self}^{power}")
@@ -102,14 +96,8 @@ class Expression:
     def __add__(self, other):
         return Expression(f"{self.value} + {other}")
 
-    def __sub__(self, other):
-        return Expression(f"{self.value} - {other}")
-
     def __mul__(self, other):
         return Expression(f"{self.value} * {other}")
-
-    def __truediv__(self, other):
-        return Expression(f"{self.value} / {other}")
 
     def __pow__(self, power):
         return Expression(f"({self.value})^{power}")
@@ -125,10 +113,10 @@ if __name__ == '__main__':
     y = Term('y')
     alpha = Term('α')
     func_f = Term('f(x, y, α)')
-    func_f.set_expression('x ** 2 + y ** 2 - α')
+    func_f.set_expression('x ** 2 + y ** 2 + α')
     print(func_f)
     print(func_f.expression)
 
-    # expr = x + func_f.expression ** 2 - alpha
-    # print(expr)
+    expr = x + func_f.expression ** 2 + alpha
+    print(expr)
 
