@@ -84,8 +84,6 @@ def simplify(func):
 
 # Examples to demonstrate functionality
 def examples():
-    # greek alphabet for us: α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ ς σ τ υ φ χ ψ ω
-
     # Example 1: Creating a constant
     pi = Term(0, "π")
     print(f'const example: {pi}')  # Output: π
