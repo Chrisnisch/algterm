@@ -38,7 +38,7 @@ class Term:
             self.set_arity(0)
         elif bool(re.match(func_pattern, s)):
             self.symbol = s
-            self.arity = len(s[1:-1].split(','))
+            self.set_arity(len(s[1:-1].split(',')))
         else:
             raise ValueError('Invalid term name')
 
@@ -82,6 +82,7 @@ class Term:
 
 
 class Expression:
+    """ +-full GPTs code """
     def __init__(self, value):
         """
         Initialize expression.
@@ -109,14 +110,12 @@ class Expression:
 if __name__ == '__main__':
     # some greeks letters for us: α β γ λ π
 
-    x = Term('x')
-    y = Term('y')
-    alpha = Term('α')
-    func_f = Term('f(x, y, α)')
-    func_f.set_expression(x ** 2 + y ** 2 + alpha)
-    print(func_f)
-    print(func_f.expression)
+    x = Term('x')  # терм-переменная x
+    y = Term('y')  # терм-переменная y
+    alpha = Term('α')  # терм-константа α
+    func_f = Term('f(x, y, α)', expr=(x ** 2 + y ** 2 + alpha))  # терм-функция f
+    print(func_f)  # вывод терма-функции: f(x, y, α)
+    print(func_f.expression)  # вывод выражения терма-функции: x^2 + y^2 + α
 
-    expr = x + func_f.expression ** 2 + alpha
-    print(expr)
-
+    expr = x + func_f.expression ** 2 + alpha  # выражение с термами
+    print(expr)  # выводится полученное выражение: x + (x^2 + y^2 + α)^2 + α
