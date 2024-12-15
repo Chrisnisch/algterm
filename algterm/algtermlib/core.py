@@ -30,17 +30,75 @@ class Term:
         :param s: Symbol for the term.
         """
 
+        def _validate_arguments(arguments: str) -> bool:
+            """
+            Validate the arguments of a function.
+
+            :param arguments: String containing function arguments.
+            :return: True if valid, False otherwise.
+            """
+            var_const_pattern = r'^[a-z\u03b1-\u03c9](_[a-zA-Z0-9]+)?$'
+            func_pattern = r'^[a-zA-Z](_[a-zA-Z0-9]+)?\(.*\)$'
+
+            stack = []
+            buffer = ""
+            for char in arguments:
+                if char == ',' and not stack:
+                    if not buffer.strip() or not (
+                            re.match(var_const_pattern, buffer.strip()) or re.match(func_pattern, buffer.strip())):
+                        return False
+                    buffer = ""
+                else:
+                    buffer += char
+                    if char == '(':
+                        stack.append('(')
+                    elif char == ')':
+                        if stack:
+                            stack.pop()
+                        else:
+                            return False
+
+            # Check the last argument
+            return not stack and (re.match(var_const_pattern, buffer.strip()) or re.match(func_pattern, buffer.strip()))
+
+        def _split_arguments(arguments: str) -> list:
+            """
+            Split arguments string into individual arguments, handling nested functions.
+
+            :param arguments: String containing function arguments.
+            :return: List of individual arguments.
+            """
+            stack = []
+            buffer = ""
+            result = []
+            for char in arguments:
+                if char == ',' and not stack:
+                    result.append(buffer.strip())
+                    buffer = ""
+                else:
+                    buffer += char
+                    if char == '(':
+                        stack.append('(')
+                    elif char == ')':
+                        stack.pop()
+            result.append(buffer.strip())  # Add the last argument
+            return result
+
         var_pattern = r'^[a-z](_[a-zA-Z0-9]+)?$'
         const_pattern = r'^[\u03b1-\u03c9](_[a-zA-Z0-9]+)?$'
-        func_pattern = (r'^[a-zA-Z](_[a-zA-Z0-9]+)?\([a-z\u03b1-\u03c9](_[a-zA-Z0-9]+)?(\s*,\s*[a-z\u03b1-\u03c9](_['
-                        r'a-zA-Z0-9]+)?)*\)$')
+        func_pattern = r'^[a-zA-Z](_[a-zA-Z0-9]+)?\((.*)\)$'
 
         if bool(re.match(const_pattern, s)) or bool(re.match(var_pattern, s)):
             self.symbol = s
             self.__set_arity(0)
-        elif bool(re.match(func_pattern, s)):
-            self.symbol = s
-            self.__set_arity(len(s[1:-1].split(',')))
+        elif match := re.match(func_pattern, s):
+            # Проверка содержимого аргументов
+            arguments = match.group(2)
+            if _validate_arguments(arguments):
+                self.symbol = s
+                self.__set_arity(len(_split_arguments(arguments)))
+            else:
+                raise ValueError('Invalid arguments in function')
         else:
             raise ValueError('Invalid term name')
 
@@ -73,6 +131,9 @@ class Term:
     def __add__(self, other):
         return Expression(self, other, operator='+')
 
+    def __sub__(self, other):
+        return Expression(self, other, operator='-')
+
     def __mul__(self, other):
         return Expression(self, other, operator='*')
 
@@ -99,6 +160,9 @@ class Expression:
     def __add__(self, other):
         return Expression(self, other, operator='+')
 
+    def __sub__(self, other):
+        return Expression(self, other, operator='-')
+
     def __mul__(self, other):
         return Expression(self, other, operator='*')
 
@@ -118,7 +182,7 @@ class Expression:
             return str(self.left)
 
         # Define operator precedence
-        precedence = {'+': 1, '*': 2, '/': 2, '^': 3}
+        precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
 
         # Get the precedence of the current operator
         current_precedence = precedence[self.operator]

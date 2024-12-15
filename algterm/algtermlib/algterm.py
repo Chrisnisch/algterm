@@ -16,3 +16,6 @@ if __name__ == '__main__':
 
     print(f'изначальное: {expr1}\nупрощенное: {simp(expr1)}\n')
     print(f'изначальное: {expr2}\nупрощенное: {simp(expr2)}\n')
+
+    func_f_1 = Term('f_1(a, b, g(a, b, x))')
+    print(func_f_1.arity)
