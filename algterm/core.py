@@ -58,7 +58,10 @@ class Term:
 
         :return: A new Term object with the same attributes.
         """
-        # TODO
+        new_term = Term(self.symbol)
+        new_term.set_arity(self.arity)
+        new_term.set_expression(self.expression)
+        return new_term
 
     def __repr__(self):
         """
