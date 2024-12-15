@@ -11,7 +11,8 @@ class Term:
         """
         self.symbol = None
         self.arity = None
-        
+        self.expression = None
+
         self.set_symbol(symbol)
         self.set_expression(expr) if expr else None
 
