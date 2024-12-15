@@ -113,7 +113,7 @@ if __name__ == '__main__':
     y = Term('y')
     alpha = Term('α')
     func_f = Term('f(x, y, α)')
-    func_f.set_expression(x ** 2 + y ** 2 + α)
+    func_f.set_expression('x ** 2 + y ** 2 + α')
     print(func_f)
     print(func_f.expression)
 
